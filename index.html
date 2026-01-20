@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>نظام إدارة المصنع الذكي | Smart Factory ERP</title>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- Fonts: Cairo for Arabic Enterprise Look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Icons: Phosphor Icons (Lightweight & Professional) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* * ==========================================
+         * CORE CSS VARIABLES & RESET
+         * ==========================================
+         */
+        :root {
+            /* Palette */
+            --primary: #1E293B;       /* Slate 800 */
+            --primary-light: #334155; /* Slate 700 */
+            --accent: #0EA5E9;        /* Sky 500 */
+            --accent-hover: #0284C7;  /* Sky 600 */
+            
+            --success: #10B981;       /* Emerald 500 */
+            --warning: #F59E0B;       /* Amber 500 */
+            --danger: #EF4444;        /* Red 500 */
+            
+            /* Light Mode Defaults */
+            --bg-body: #F1F5F9;       /* Slate 100 */
+            --bg-card: #FFFFFF;
+            --text-main: #0F172A;     /* Slate 900 */
+            --text-muted: #64748B;    /* Slate 500 */
+            --border: #E2E8F0;        /* Slate 200 */
+            
+            /* Layout */
+            --sidebar-width: 260px;
+            --header-height: 64px;
+            --radius: 12px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark Mode Overrides */
+        [data-theme="dark"] {
+            --bg-body: #0F172A;
+            --bg-card: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --primary: #020617; 
+        }
+
+        /* Print Styles */
+        @media print {
+            .sidebar, .top-bar, .btn, .user-actions { display: none !important; }
+            .main-content { margin: 0; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ccc; }
+            body { background: white; color: black; }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 10px;
+            opacity: 0.5;
+        }
+
+        /* * ==========================================
+         * LAYOUT STRUCTURE (Grid & Flex)
+         * ==========================================
+         */
+        #app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            z-index: 50;
+        }
+
+        .brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            font-weight: 800;
+            font-size: 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            gap: 0.5rem;
+        }
+        .brand i { color: var(--accent); font-size: 1.5rem; }
+
+        .nav-menu {
+            flex: 1;
+            padding: 1.5rem 0.75rem;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #94A3B8;
+            text-decoration: none;
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .nav-item.active {
+            background-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .top-bar {
+            height: var(--header-height);
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 40;
+        }
+
+        .toggle-sidebar {
+            display: none; /* Hidden on desktop */
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            position: relative;
+        }
+        .icon-btn:hover { background-color: var(--bg-body); color: var(--accent); }
+
+        /* Notifications Dropdown */
+        .notifications-dropdown {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            width: 320px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            max-height: 400px;
+            overflow-y: auto;
+            animation: slideUp 0.2s ease;
+        }
+        .notifications-dropdown.active { display: flex; }
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            transition: var(--transition);
+        }
+        .notification-item:hover { background: var(--bg-body); }
+        .notification-item:last-child { border-bottom: none; }
+
+        /* User Profile */
+        .user-profile-trigger {
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            margin-right: 10px; 
+            cursor: pointer; 
+            padding: 0.25rem; 
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        .user-profile-trigger:hover { background: var(--bg-body); }
+
+        /* Page Content */
+        .page-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        /* * ==========================================
+         * COMPONENTS
+         * ==========================================
+         */
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .stat-info h3 { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.5rem; }
+        .stat-info .value { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .bg-accent-soft { background: rgba(14, 165, 233, 0.1); color: var(--accent); }
+        .bg-success-soft { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .bg-warning-soft { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .bg-danger-soft { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { 
+            text-align: right; 
+            padding: 1rem; 
+            background: var(--bg-body); 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            font-size: 0.875rem;
+        }
+        td { 
+            padding: 1rem; 
+            border-bottom: 1px solid var(--border); 
+            color: var(--text-main);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: rgba(0,0,0,0.01); }
+
+        /* Badges */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge-neutral { background: var(--bg-body); color: var(--text-muted); }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.875rem; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-ghost { background: transparent; color: var(--text-muted); }
+        .btn-ghost:hover { background: var(--bg-body); color: var(--text-main); }
+        .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+        
+        /* Forms */
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
+        .form-control, .form-select {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--border);
+            background: var(--bg-body);
+            color: var(--text-main);
+            border-radius: 8px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus, .form-select:focus { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+
+        /* ✨ Beautiful Date Picker Design ✨ */
+        input[type="date"] {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            color: var(--text-main);
+            font-family: 'Cairo', sans-serif;
+            text-align: right;
+            cursor: text;
+            /* Ensure Native Calendar Popup matches Theme */
+            color-scheme: light; 
+        }
+
+        [data-theme="dark"] input[type="date"] {
+            color-scheme: dark; 
+        }
+
+        /* Custom Calendar Icon using SVG */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2364748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+            background-position: center;
+            background-size: 18px;
+            background-repeat: no-repeat;
+            color: rgba(0,0,0,0); /* Hide default ugly icon */
+            opacity: 0.7;
+            cursor: pointer;
+            padding: 8px; /* Increase click area */
+            margin-left: 0;
+            transition: transform 0.2s ease, opacity 0.2s;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            background-color: var(--border); /* Subtle hover effect */
+            border-radius: 6px;
+        }
+
+        /* Dark Mode Icon Color Adjust */
+        [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: var(--bg-card);
+            color: var(--text-main);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            border-right: 4px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInLeft 0.3s ease;
+            min-width: 300px;
+        }
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--danger); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 500px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .modal-overlay.open .modal { transform: translateY(0); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .slide-up { animation: slideUp 0.4s ease-out forwards; }
+
+        /* * ==========================================
+         * RESPONSIVE
+         * ==========================================
+         */
+        @media (max-width: 1024px) {
+            :root { --sidebar-width: 240px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                right: -100%; /* Hidden off canvas */
+                height: 100%;
+                box-shadow: -4px 0 10px rgba(0,0,0,0.1);
+            }
+            .sidebar.active { right: 0; }
+            .toggle-sidebar { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- Overlay for mobile sidebar -->
+        <div id="sidebarOverlay" class="modal-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <i class="ph ph-factory"></i>
+                <span id="brandNameDisplay">المصنع الذكي</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-link>
+                    <i class="ph ph-squares-four"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+                <a href="#production" class="nav-item" data-link>
+                    <i class="ph ph-conveyor-belt"></i>
+                    <span>خطوط الإنتاج</span>
+                </a>
+                <a href="#inventory" class="nav-item" data-link>
+                    <i class="ph ph-package"></i>
+                    <span>المخزون</span>
+                </a>
+                <a href="#employees" class="nav-item" data-link>
+                    <i class="ph ph-users"></i>
+                    <span>الموظفين</span>
+                </a>
+                <a href="#reports" class="nav-item" data-link>
+                    <i class="ph ph-chart-line-up"></i>
+                    <span>التقارير</span>
+                </a>
+                <div style="flex:1"></div>
+                <a href="#settings" class="nav-item" data-link>
+                    <i class="ph ph-gear"></i>
+                    <span>الإعدادات</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <i class="ph ph-list toggle-sidebar" onclick="toggleSidebar()"></i>
+                    <h2 id="pageTitle" style="font-size:1.25rem; font-weight:700;">لوحة التحكم</h2>
+                </div>
+                
+                <div class="user-actions">
+                    <button class="icon-btn" onclick="toggleTheme()" title="تغيير الثيم">
+                        <i id="themeIcon" class="ph ph-moon"></i>
+                    </button>
+                    
+                    <!-- Notifications -->
+                    <div style="position:relative;">
+                        <button class="icon-btn" id="notifBtn" onclick="toggleNotifications()" title="الإشعارات">
+                            <i class="ph ph-bell"></i>
+                            <span id="notifBadge" style="position:absolute; top:5px; right:5px; width:8px; height:8px; background:var(--danger); border-radius:50%; display:none;"></span>
+                        </button>
+                        <div id="notifDropdown" class="notifications-dropdown">
+                            <!-- Injected JS -->
+                        </div>
+                    </div>
+
+                    <!-- User Profile -->
+                    <div class="user-profile-trigger" onclick="Actions.openProfileModal()" title="تعديل الملف الشخصي">
+                        <img id="userAvatar" src="" style="width:36px; height:36px; border-radius:50%; background:#e2e8f0; object-fit:cover;">
+                        <div style="display:none; flex-direction:column; line-height:1.2; @media(min-width:768px){display:flex;}">
+                            <span id="userName" style="font-size:0.85rem; font-weight:700;"></span>
+                            <span id="userRole" style="font-size:0.7rem; color:var(--text-muted);"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Container (Dynamic Content) -->
+            <div id="router-view" class="page-container">
+                <!-- Content injected via JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Universal Modal -->
+    <div class="modal-overlay" id="genericModalOverlay">
+        <div class="modal" id="genericModalContent">
+            <!-- Dynamic Form -->
+        </div>
+    </div>
+
+    <!-- Audio for startup -->
+    <audio id="startupSound" src="admin.mp3"></audio>
+
+    <script>
+        /**
+         * ==========================================
+         * FACTORY ERP - CORE JAVASCRIPT
+         * Architecture: Store -> Router -> Components
+         * ==========================================
+         */
+
+        // --- 1. STATE MANAGEMENT (STORE) ---
+        const Store = {
+            state: {
+                theme: localStorage.getItem('theme') || 'light',
+                factoryName: localStorage.getItem('factoryName') || 'المصنع الذكي للأنابيب',
+                user: JSON.parse(localStorage.getItem('user')) || {
+                    name: 'المدير العام',
+                    role: 'Admin',
+                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+                },
+                // Notifications - Clean Start
+                notifications: JSON.parse(localStorage.getItem('notifications')) || [],
+                
+                // Domain Data - Use Logical OR to load defaults only if localStorage is NULL, not empty array
+                activities: localStorage.getItem('activities') ? JSON.parse(localStorage.getItem('activities')) : [
+                    { id: 1, text: 'تم إكمال طلبية #401', time: 'منذ 15 دقيقة' },
+                    { id: 2, text: 'تم إكمال طلبية #402', time: 'منذ 30 دقيقة' },
+                    { id: 3, text: 'تم إكمال طلبية #403', time: 'منذ 45 دقيقة' }
+                ],
+                productionLines: localStorage.getItem('productionLines') ? JSON.parse(localStorage.getItem('productionLines')) : [
+                    { id: 1, name: 'خط التعبئة A', status: 'active', efficiency: 92, lastMaint: '2023-10-01' },
+                    { id: 2, name: 'خط التغليف B', status: 'maintenance', efficiency: 0, lastMaint: '2023-10-25' },
+                    { id: 3, name: 'خط المعالجة C', status: 'active', efficiency: 88, lastMaint: '2023-09-15' },
+                ],
+                inventory: localStorage.getItem('inventory') ? JSON.parse(localStorage.getItem('inventory')) : [
+                    { id: 101, name: 'مواد خام بلاستيك', quantity: 5000, unit: 'kg', threshold: 1000 },
+                    { id: 102, name: 'علب كرتون', quantity: 1200, unit: 'box', threshold: 500 },
+                    { id: 103, name: 'أحبار طباعة', quantity: 80, unit: 'liter', threshold: 100 },
+                ],
+                employees: localStorage.getItem('employees') ? JSON.parse(localStorage.getItem('employees')) : [
+                    { id: 1, name: 'أحمد محمد', role: 'مشرف إنتاج', status: 'present' },
+                    { id: 2, name: 'سارة علي', role: 'مراقبة جودة', status: 'present' },
+                    { id: 3, name: 'خالد عمر', role: 'فني صيانة', status: 'absent' },
+                ],
+                // Dynamic Chart Data
+                productionStats: localStorage.getItem('productionStats') ? JSON.parse(localStorage.getItem('productionStats')) : [120, 190, 150, 220, 180, 250]
+            },
+            
+            listeners: [],
+
+            subscribe(fn) {
+                this.listeners.push(fn);
+            },
+
+            notify() {
+                this.listeners.forEach(fn => fn(this.state));
+            },
+
+            dispatch(action, payload) {
+                switch(action) {
+                    case 'TOGGLE_THEME':
+                        this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+                        localStorage.setItem('theme', this.state.theme);
+                        applyTheme();
+                        break;
+                    
+                    // --- ALERTS & NOTIFICATIONS ---
+                    case 'ADD_NOTIFICATION':
+                        this.state.notifications.unshift({ 
+                            id: Date.now(), 
+                            text: payload.text, 
+                            time: 'الآن', 
+                            type: payload.type || 'success' 
+                        });
+                        this.save('notifications');
+                        document.getElementById('notifBadge').style.display = 'block';
+                        break;
+
+                    case 'CLEAR_NOTIFICATIONS':
+                        this.state.notifications = [];
+                        this.save('notifications');
+                        break;
+
+                    // --- USER & SETTINGS ---
+                    case 'UPDATE_USER_PROFILE':
+                        this.state.user = { ...this.state.user, ...payload };
+                        this.save('user');
+                        updateUserProfileUI();
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم تحديث الملف الشخصي', type: 'success' });
+                        break;
+                    case 'UPDATE_FACTORY_NAME':
+                        this.state.factoryName = payload;
+                        localStorage.setItem('factoryName', payload);
+                        this.dispatch('ADD_NOTIFICATION', { text: `تم تغيير اسم المصنع إلى: ${payload}`, type: 'success' });
+                        break;
+                    
+                    // --- ACTIVITIES ---
+                    case 'DELETE_ACTIVITY':
+                        this.state.activities = this.state.activities.filter(a => a.id !== payload);
+                        this.save('activities');
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم حذف نشاط من السجل', type: 'warning' });
+                        break;
+                    case 'ADD_ACTIVITY':
+                        this.state.activities.unshift({ id: Date.now(), text: payload.text, time: 'الآن' });
+                        this.save('activities');
+                        break;
+
+                    // --- INVENTORY ---
+                    case 'ADD_PRODUCT':
+                        this.state.inventory.push({ ...payload, id: Date.now() });
+                        this.save('inventory');
+                        this.dispatch('ADD_ACTIVITY', { text: `تم إضافة صنف جديد: ${payload.name}` });
+                        this.dispatch('ADD_NOTIFICATION', { text: `إضافة مادة: ${payload.name}`, type: 'success' });
+                        break;
+                    case 'EDIT_PRODUCT':
+                        const pIndex = this.state.inventory.findIndex(p => p.id === payload.id);
+                        if(pIndex !== -1) {
+                            this.state.inventory[pIndex] = { ...this.state.inventory[pIndex], ...payload };
+                            this.save('inventory');
+                            this.dispatch('ADD_NOTIFICATION', { text: `تعديل مادة: ${payload.name}`, type: 'warning' });
+                        }
+                        break;
+                    case 'DELETE_PRODUCT':
+                        this.state.inventory = this.state.inventory.filter(p => p.id !== payload);
+                        this.save('inventory');
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم حذف مادة من المخزون', type: 'danger' });
+                        break;
+
+                    // --- PRODUCTION ---
+                    case 'ADD_LINE':
+                        this.state.productionLines.push({ 
+                            ...payload, 
+                            id: Date.now(), 
+                            // efficiency and lastMaint are now in payload, fallback handled in form
+                        });
+                        this.save('productionLines');
+                        this.dispatch('ADD_NOTIFICATION', { text: `إضافة خط إنتاج جديد: ${payload.name}`, type: 'success' });
+                        break;
+                    case 'EDIT_LINE':
+                        const lIndex = this.state.productionLines.findIndex(l => l.id === payload.id);
+                        if(lIndex !== -1) {
+                            this.state.productionLines[lIndex] = { ...this.state.productionLines[lIndex], ...payload };
+                            this.save('productionLines');
+                            this.dispatch('ADD_NOTIFICATION', { text: `تم تعديل بيانات خط: ${payload.name}`, type: 'warning' });
+                        }
+                        break;
+                    case 'DELETE_LINE':
+                        this.state.productionLines = this.state.productionLines.filter(l => l.id !== payload);
+                        this.save('productionLines');
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم حذف خط إنتاج', type: 'danger' });
+                        break;
+                    case 'UPDATE_LINE_STATUS':
+                        const line = this.state.productionLines.find(l => l.id === payload.id);
+                        if(line) {
+                            line.status = payload.status;
+                            this.save('productionLines');
+                            this.dispatch('ADD_ACTIVITY', { text: `تغيير حالة ${line.name} إلى ${payload.status}` });
+                            this.dispatch('ADD_NOTIFICATION', { text: `حالة الخط ${line.name}: ${payload.status}`, type: 'warning' });
+                        }
+                        break;
+
+                    case 'UPDATE_PRODUCTION_STATS':
+                        this.state.productionStats = payload;
+                        this.save('productionStats');
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم تحديث بيانات تحليل الإنتاج', type: 'success' });
+                        setTimeout(() => initChart(), 100);
+                        break;
+
+                    // --- EMPLOYEES ---
+                    case 'ADD_EMPLOYEE':
+                        this.state.employees.push({ ...payload, id: Date.now() });
+                        this.save('employees');
+                        this.dispatch('ADD_NOTIFICATION', { text: `تعيين موظف جديد: ${payload.name}`, type: 'success' });
+                        break;
+                    case 'EDIT_EMPLOYEE':
+                        const eIndex = this.state.employees.findIndex(e => e.id === payload.id);
+                        if(eIndex !== -1) {
+                            this.state.employees[eIndex] = { ...this.state.employees[eIndex], ...payload };
+                            this.save('employees');
+                            this.dispatch('ADD_NOTIFICATION', { text: `تعديل بيانات الموظف: ${payload.name}`, type: 'warning' });
+                        }
+                        break;
+                    case 'DELETE_EMPLOYEE':
+                        this.state.employees = this.state.employees.filter(e => e.id !== payload);
+                        this.save('employees');
+                        this.dispatch('ADD_NOTIFICATION', { text: 'تم فصل موظف', type: 'danger' });
+                        break;
+                }
+                this.notify();
+            },
+
+            save(key) {
+                localStorage.setItem(key, JSON.stringify(this.state[key]));
+            }
+        };
+
+        // --- 2. UTILITIES & MODAL SYSTEM ---
+        const Utils = {
+            formatNumber: (num) => new Intl.NumberFormat('ar-EG').format(num),
+            showToast: (msg, type = 'success') => {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <i class="ph ${type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'}" style="font-size:1.5rem"></i>
+                    <span>${msg}</span>
+                `;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+        };
+
+        const ModalSystem = {
+            open(html) {
+                const overlay = document.getElementById('genericModalOverlay');
+                const content = document.getElementById('genericModalContent');
+                content.innerHTML = html;
+                overlay.classList.add('open');
+            },
+            close() {
+                document.getElementById('genericModalOverlay').classList.remove('open');
+            },
+            confirm(message, onConfirm) {
+                const html = `
+                    <div style="text-align:center">
+                        <i class="ph ph-warning-circle" style="font-size:3rem; color:var(--danger); margin-bottom:1rem; display:inline-block;"></i>
+                        <h3 style="margin-bottom:0.5rem">تأكيد الإجراء</h3>
+                        <p style="color:var(--text-muted); margin-bottom:2rem;">${message}</p>
+                        <div style="display:flex; justify-content:center; gap:1rem;">
+                            <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                            <button class="btn btn-danger" id="confirmActionBtn">تأكيد الحذف</button>
+                        </div>
+                    </div>
+                `;
+                this.open(html);
+                document.getElementById('confirmActionBtn').onclick = () => {
+                    onConfirm();
+                    this.close();
+                };
+            }
+        };
+
+        // --- 3. COMPONENTS & VIEWS ---
+        const Components = {
+            StatCard: (title, value, icon, colorClass) => `
+                <div class="card stat-card slide-up">
+                    <div class="stat-info">
+                        <h3>${title}</h3>
+                        <div class="value">${value}</div>
+                    </div>
+                    <div class="stat-icon ${colorClass}">
+                        <i class="ph ${icon}"></i>
+                    </div>
+                </div>
+            `,
+            
+            StatusBadge: (status) => {
+                const map = {
+                    'active': { class: 'badge-success', text: 'نشط' },
+                    'maintenance': { class: 'badge-warning', text: 'صيانة' },
+                    'stopped': { class: 'badge-danger', text: 'متوقف' },
+                    'present': { class: 'badge-success', text: 'حاضر' },
+                    'absent': { class: 'badge-danger', text: 'غائب' },
+                    'low': { class: 'badge-warning', text: 'منخفض' }
+                };
+                const conf = map[status] || { class: 'badge-neutral', text: status };
+                return `<span class="badge ${conf.class}">${conf.text}</span>`;
+            }
+        };
+
+        const Views = {
+            dashboard: () => {
+                const totalProd = Store.state.productionLines.filter(l => l.status === 'active').length;
+                const totalInv = Store.state.inventory.reduce((a, b) => a + Number(b.quantity), 0);
+                setTimeout(() => initChart(), 100);
+
+                return `
+                    <div class="fade-in">
+                        <div class="stats-grid">
+                            ${Components.StatCard('خطوط الإنتاج النشطة', `${totalProd}/${Store.state.productionLines.length}`, 'ph-factory', 'bg-accent-soft')}
+                            ${Components.StatCard('كفاءة المصنع', Store.state.productionLines.length ? '87%' : '0%', 'ph-chart-bar', 'bg-success-soft')}
+                            ${Components.StatCard('إجمالي المخزون', Utils.formatNumber(totalInv), 'ph-package', 'bg-warning-soft')}
+                            ${Components.StatCard('تنبيهات الصيانة', Store.state.productionLines.filter(l => l.status === 'maintenance').length, 'ph-wrench', 'bg-danger-soft')}
+                        </div>
+                        <div class="grid-layout" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap:1.5rem;">
+                            <div class="card" style="height:350px; position:relative;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                                    <h3>تحليل الإنتاج الأسبوعي</h3>
+                                    <button class="btn btn-sm btn-ghost" onclick="Actions.openProductionStatsModal()" title="تعديل البيانات">
+                                        <i class="ph ph-pencil-simple"></i> تعديل
+                                    </button>
+                                </div>
+                                <canvas id="productionChart"></canvas>
+                            </div>
+                            <div class="card">
+                                <h3 style="margin-bottom:1rem;">آخر النشاطات</h3>
+                                <ul style="list-style:none;">
+                                    ${Store.state.activities.length === 0 ? '<p style="color:var(--text-muted); text-align:center; padding:1rem;">لا توجد نشاطات حديثة</p>' : ''}
+                                    ${Store.state.activities.map(act => `
+                                        <li style="padding:0.75rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:0.75rem;">
+                                            <div style="width:8px; height:8px; background:var(--accent); border-radius:50%;"></div>
+                                            <div style="flex:1;">
+                                                <div style="font-weight:600; font-size:0.9rem;">${act.text}</div>
+                                                <div style="font-size:0.75rem; color:var(--text-muted);">${act.time}</div>
+                                            </div>
+                                            <button class="btn btn-ghost btn-icon" onclick="Actions.deleteActivity(${act.id})" title="حذف النشاط">
+                                                <i class="ph ph-x"></i>
+                                            </button>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            production: () => {
+                return `
+                    <div class="card fade-in">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+                            <h3>حالة الخطوط</h3>
+                            <button class="btn btn-primary" onclick="Actions.openLineModal()"><i class="ph ph-plus"></i> إضافة خط</button>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>اسم الخط</th>
+                                        <th>الحالة</th>
+                                        <th>الكفاءة</th>
+                                        <th>آخر صيانة</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Store.state.productionLines.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">لا توجد خطوط إنتاج</td></tr>' : ''}
+                                    ${Store.state.productionLines.map(line => `
+                                        <tr>
+                                            <td>${line.name}</td>
+                                            <td>${Components.StatusBadge(line.status)}</td>
+                                            <td>
+                                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                                    <div style="flex:1; height:6px; background:#e2e8f0; border-radius:3px; width:80px;">
+                                                        <div style="width:${line.efficiency}%; height:100%; background:${line.efficiency > 80 ? 'var(--success)' : 'var(--warning)'}; border-radius:3px;"></div>
+                                                    </div>
+                                                    <span style="font-size:0.8rem;">${line.efficiency}%</span>
+                                                </div>
+                                            </td>
+                                            <td>${line.lastMaint}</td>
+                                            <td>
+                                                <div style="display:flex; gap:0.5rem;">
+                                                    <button class="btn btn-ghost btn-icon" onclick="Actions.toggleLineStatus(${line.id})" title="تشغيل/إيقاف سريع">
+                                                        <i class="ph ph-power" style="color:${line.status === 'active' ? 'var(--success)' : 'var(--danger)'}"></i>
+                                                    </button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="Actions.openLineModal(${line.id})" title="تعديل">
+                                                        <i class="ph ph-pencil-simple"></i>
+                                                    </button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="Actions.deleteLine(${line.id})" title="حذف">
+                                                        <i class="ph ph-trash" style="color:var(--danger)"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            },
+
+            inventory: () => {
+                return `
+                    <div class="card fade-in">
+                         <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:10px;">
+                            <h3>إدارة المخزون</h3>
+                            <button class="btn btn-primary" onclick="Actions.openProductModal()"><i class="ph ph-plus"></i> إضافة صنف</button>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>اسم المادة</th>
+                                        <th>الكمية الحالية</th>
+                                        <th>الوحدة</th>
+                                        <th>الحد الأدنى</th>
+                                        <th>الحالة</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Store.state.inventory.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">المخزون فارغ</td></tr>' : ''}
+                                    ${Store.state.inventory.map(item => `
+                                        <tr>
+                                            <td>${item.name}</td>
+                                            <td>${Utils.formatNumber(item.quantity)}</td>
+                                            <td>${item.unit}</td>
+                                            <td>${item.threshold}</td>
+                                            <td>${Components.StatusBadge(item.quantity < item.threshold ? 'low' : 'active')}</td>
+                                            <td>
+                                                <div style="display:flex; gap:0.5rem;">
+                                                    <button class="btn btn-ghost btn-icon" onclick="Actions.openProductModal(${item.id})" title="تعديل">
+                                                        <i class="ph ph-pencil-simple"></i>
+                                                    </button>
+                                                    <button class="btn btn-ghost btn-icon" onclick="Actions.deleteProduct(${item.id})" title="حذف">
+                                                        <i class="ph ph-trash" style="color:var(--danger)"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            },
+            
+            employees: () => `
+                 <div class="card fade-in">
+                     <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+                        <h3>سجل الموظفين</h3>
+                        <button class="btn btn-primary" onclick="Actions.openEmployeeModal()"><i class="ph ph-plus"></i> إضافة موظف</button>
+                     </div>
+                     <div class="table-container">
+                        <table>
+                            <thead><tr><th>الاسم</th><th>الوظيفة</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                            <tbody>
+                                ${Store.state.employees.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">لا يوجد موظفين</td></tr>' : ''}
+                                ${Store.state.employees.map(e => `
+                                    <tr>
+                                        <td>${e.name}</td>
+                                        <td>${e.role}</td>
+                                        <td>${Components.StatusBadge(e.status)}</td>
+                                        <td>
+                                            <div style="display:flex; gap:0.5rem;">
+                                                <button class="btn btn-ghost btn-icon" onclick="Actions.openEmployeeModal(${e.id})" title="تعديل">
+                                                    <i class="ph ph-pencil-simple"></i>
+                                                </button>
+                                                <button class="btn btn-ghost btn-icon" onclick="Actions.deleteEmployee(${e.id})" title="حذف">
+                                                    <i class="ph ph-trash" style="color:var(--danger)"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                     </div>
+                 </div>
+            `,
+
+            settings: () => `
+                <div class="card fade-in" style="max-width:600px;">
+                    <h3 style="margin-bottom:1.5rem;">إعدادات النظام</h3>
+                    <div class="form-group">
+                        <label class="form-label">اسم المصنع</label>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="text" id="settingFactoryName" class="form-control" value="${Store.state.factoryName}">
+                            <button class="btn btn-primary" onclick="Actions.saveFactoryName()">حفظ</button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:center; justify-content:space-between;">
+                        <span>تفعيل الإشعارات الصوتية</span>
+                        <input type="checkbox" checked>
+                    </div>
+                    <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border);">
+                        <button class="btn btn-danger" onclick="Actions.resetData()">
+                            <i class="ph ph-trash"></i> تصفير جميع البيانات
+                        </button>
+                    </div>
+                </div>
+            `,
+
+            reports: () => `
+                <div class="card fade-in" style="text-align:center; padding:3rem;">
+                    <i class="ph ph-file-pdf" style="font-size:4rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+                    <h3>مركز التقارير</h3>
+                    <p style="color:var(--text-muted); margin-bottom:2rem;">يمكنك تصدير تقارير الإنتاج الشهرية بصيغة PDF أو Excel</p>
+                    <div style="display:flex; justify-content:center; gap:1rem;">
+                        <button class="btn btn-primary" onclick="Actions.exportPDF()">تصدير PDF</button>
+                        <button class="btn btn-ghost" onclick="Actions.exportExcel()">تصدير Excel</button>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 4. ROUTER & RENDER ENGINE ---
+        function navigate() {
+            const hash = window.location.hash.slice(1) || 'dashboard';
+            const viewFn = Views[hash] || Views.dashboard;
+            const container = document.getElementById('router-view');
+            const title = document.getElementById('pageTitle');
+            
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+                if(el.getAttribute('href') === `#${hash}`) el.classList.add('active');
+            });
+
+            const titles = {
+                'dashboard': 'لوحة التحكم', 'production': 'إدارة الإنتاج',
+                'inventory': 'المخزون', 'employees': 'الموظفين',
+                'reports': 'التقارير', 'settings': 'الإعدادات'
+            };
+            title.textContent = titles[hash] || 'لوحة التحكم';
+            container.innerHTML = viewFn();
+            
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('active');
+                document.getElementById('sidebarOverlay').classList.remove('open');
+            }
+        }
+
+        // --- 5. APPLICATION ACTIONS (CRUD & LOGIC) ---
+        const Actions = {
+            // Exports
+            exportExcel: () => {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "النوع,الاسم,الحالة/الكمية\r\n";
+                
+                Store.state.productionLines.forEach(l => {
+                    csvContent += `خط إنتاج,${l.name},${l.status}\r\n`;
+                });
+                Store.state.inventory.forEach(i => {
+                    csvContent += `مخزون,${i.name},${i.quantity}\r\n`;
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "factory_report.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                Utils.showToast("تم تنزيل ملف Excel بنجاح");
+            },
+
+            exportPDF: () => {
+                Utils.showToast("جاري تحضير الطباعة...");
+                setTimeout(() => {
+                    window.print();
+                }, 1000);
+            },
+
+            // User Profile
+            openProfileModal: () => {
+                const user = Store.state.user;
+                const html = `
+                    <h3 style="margin-bottom:1rem;">تعديل الملف الشخصي</h3>
+                    <div class="form-group"><label class="form-label">الاسم</label><input id="uName" class="form-control" value="${user.name}"></div>
+                    <div class="form-group"><label class="form-label">الوظيفة (Role)</label><input id="uRole" class="form-control" value="${user.role}"></div>
+                    <div class="form-group"><label class="form-label">رابط الصورة (URL)</label><input id="uAvatar" class="form-control" value="${user.avatar}"></div>
+                    
+                    <div class="form-group" style="border-top:1px solid var(--border); padding-top:1rem; margin-top:1rem;">
+                        <label class="form-label">أو رفع صورة من الجهاز</label>
+                        <input type="file" id="uAvatarFile" class="form-control" accept="image/*" onchange="Actions.handleImageUpload(this)">
+                        <small style="color:var(--text-muted); font-size:0.75rem;">سيتم استخدام الصورة المرفوعة بدلاً من الرابط</small>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem;">
+                        <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                        <button class="btn btn-primary" onclick="Actions.saveProfile()">حفظ</button>
+                    </div>
+                `;
+                ModalSystem.open(html);
+            },
+
+            handleImageUpload: (input) => {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.getElementById('uAvatar').value = e.target.result;
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                }
+            },
+
+            saveProfile: () => {
+                const name = document.getElementById('uName').value;
+                const role = document.getElementById('uRole').value;
+                const avatar = document.getElementById('uAvatar').value;
+                Store.dispatch('UPDATE_USER_PROFILE', { name, role, avatar });
+                ModalSystem.close();
+                Utils.showToast('تم تحديث الملف الشخصي');
+            },
+
+            // Production Stats Modal
+            openProductionStatsModal: () => {
+                const stats = Store.state.productionStats;
+                const days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+                let inputs = '';
+                stats.forEach((val, index) => {
+                    inputs += `
+                        <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                            <label style="width:60px; font-weight:600; color:var(--text-muted);">${days[index]}</label>
+                            <input type="number" id="stat_${index}" class="form-control" value="${val}" min="0">
+                        </div>
+                    `;
+                });
+                
+                const html = `
+                    <h3 style="margin-bottom:1rem;">تحديث بيانات الإنتاج</h3>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.5rem;">أدخل عدد الوحدات المنتجة لكل يوم من أيام الأسبوع الحالي</p>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                        ${inputs}
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem; border-top:1px solid var(--border); padding-top:1rem;">
+                        <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                        <button class="btn btn-primary" onclick="Actions.saveProductionStats()">حفظ التغييرات</button>
+                    </div>
+                `;
+                ModalSystem.open(html);
+            },
+
+            saveProductionStats: () => {
+                const newStats = [];
+                for(let i=0; i<6; i++) {
+                    const val = document.getElementById(`stat_${i}`).value;
+                    newStats.push(Number(val) || 0);
+                }
+                Store.dispatch('UPDATE_PRODUCTION_STATS', newStats);
+                ModalSystem.close();
+                Utils.showToast('تم تحديث مخطط الإنتاج');
+            },
+
+            // Settings
+            saveFactoryName: () => {
+                const name = document.getElementById('settingFactoryName').value;
+                if(name) {
+                    Store.dispatch('UPDATE_FACTORY_NAME', name);
+                    document.getElementById('brandNameDisplay').textContent = name;
+                    Utils.showToast('تم حفظ اسم المصنع');
+                }
+            },
+
+            resetData: () => {
+                ModalSystem.confirm("تحذير: سيتم حذف جميع البيانات (الموظفين، الخطوط، المخزون، التحليلات، النشاطات، الإشعارات) نهائياً. هل أنت متأكد؟", () => {
+                    const emptyState = {
+                        productionLines: [],
+                        inventory: [],
+                        employees: [],
+                        activities: [],
+                        notifications: [],
+                        productionStats: [0, 0, 0, 0, 0, 0]
+                    };
+
+                    // Persist empty state to prevent default loading on reload
+                    localStorage.setItem('productionLines', JSON.stringify(emptyState.productionLines));
+                    localStorage.setItem('inventory', JSON.stringify(emptyState.inventory));
+                    localStorage.setItem('employees', JSON.stringify(emptyState.employees));
+                    localStorage.setItem('activities', JSON.stringify(emptyState.activities));
+                    localStorage.setItem('notifications', JSON.stringify(emptyState.notifications));
+                    localStorage.setItem('productionStats', JSON.stringify(emptyState.productionStats));
+
+                    // Reload to apply clean slate logic
+                    location.reload();
+                });
+            },
+
+            // Activities
+            deleteActivity: (id) => {
+                Store.dispatch('DELETE_ACTIVITY', id);
+                navigate(); // Re-render dashboard
+            },
+
+            // --- Production Lines ---
+            toggleLineStatus: (id) => {
+                const line = Store.state.productionLines.find(l => l.id === id);
+                const newStatus = line.status === 'active' ? 'stopped' : 'active';
+                Store.dispatch('UPDATE_LINE_STATUS', { id, status: newStatus });
+                navigate();
+                Utils.showToast(`تم تغيير حالة ${line.name}`);
+            },
+
+            openLineModal: (id = null) => {
+                const isEdit = id !== null;
+                // Default date to today if new
+                const defaultDate = new Date().toISOString().split('T')[0];
+                const item = isEdit ? Store.state.productionLines.find(x => x.id === id) : { name: '', efficiency: 100, status: 'stopped', lastMaint: defaultDate };
+                
+                const html = `
+                    <h3 style="margin-bottom:1rem;">${isEdit ? 'تعديل خط إنتاج' : 'إضافة خط جديد'}</h3>
+                    <div class="form-group"><label class="form-label">اسم الخط</label><input id="lName" class="form-control" value="${item.name}"></div>
+                    
+                    <div class="form-group"><label class="form-label">الكفاءة (%)</label><input id="lEff" type="number" class="form-control" value="${item.efficiency}" min="0" max="100"></div>
+                    
+                    <div class="form-group"><label class="form-label">تاريخ آخر صيانة</label><input id="lMaint" type="date" class="form-control" value="${item.lastMaint}"></div>
+
+                    ${isEdit ? `
+                        <div class="form-group"><label class="form-label">الحالة</label>
+                            <select id="lStatus" class="form-select">
+                                <option value="active" ${item.status === 'active' ? 'selected' : ''}>نشط</option>
+                                <option value="stopped" ${item.status === 'stopped' ? 'selected' : ''}>متوقف</option>
+                                <option value="maintenance" ${item.status === 'maintenance' ? 'selected' : ''}>صيانة</option>
+                            </select>
+                        </div>
+                    ` : ''}
+
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem;">
+                        <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                        <button class="btn btn-primary" onclick="Actions.submitLine(${id})">حفظ</button>
+                    </div>
+                `;
+                ModalSystem.open(html);
+            },
+
+            submitLine: (id) => {
+                const name = document.getElementById('lName').value;
+                const eff = document.getElementById('lEff').value;
+                const maint = document.getElementById('lMaint').value;
+                const status = document.getElementById('lStatus') ? document.getElementById('lStatus').value : 'stopped';
+
+                if(!name) return Utils.showToast('يرجى إدخال اسم الخط', 'error');
+
+                const payload = { name, efficiency: eff, lastMaint: maint, status };
+
+                if (id) {
+                    Store.dispatch('EDIT_LINE', { id, ...payload });
+                    Utils.showToast('تم التعديل بنجاح');
+                } else {
+                    Store.dispatch('ADD_LINE', payload);
+                    Utils.showToast('تمت الإضافة بنجاح');
+                }
+                ModalSystem.close();
+                navigate();
+            },
+
+            deleteLine: (id) => {
+                ModalSystem.confirm("سيتم حذف خط الإنتاج وسجله بالكامل.", () => {
+                    Store.dispatch('DELETE_LINE', id);
+                    navigate();
+                    Utils.showToast('تم الحذف بنجاح');
+                });
+            },
+
+            // --- Products ---
+            openProductModal: (id = null) => {
+                const isEdit = id !== null;
+                const item = isEdit ? Store.state.inventory.find(x => x.id === id) : { name: '', quantity: '', unit: '', threshold: 100 };
+
+                const html = `
+                    <h3 style="margin-bottom:1rem;">${isEdit ? 'تعديل الصنف' : 'إضافة صنف جديد'}</h3>
+                    <div class="form-group"><label class="form-label">اسم المنتج</label><input id="pName" class="form-control" value="${item.name}"></div>
+                    <div class="form-group"><label class="form-label">الكمية</label><input id="pQty" type="number" class="form-control" value="${item.quantity}"></div>
+                    <div class="form-group"><label class="form-label">الوحدة</label><input id="pUnit" class="form-control" placeholder="kg, box..." value="${item.unit}"></div>
+                    <div class="form-group"><label class="form-label">حد التنبيه</label><input id="pThresh" type="number" class="form-control" value="${item.threshold}"></div>
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem;">
+                        <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                        <button class="btn btn-primary" onclick="Actions.submitProduct(${id})">حفظ</button>
+                    </div>
+                `;
+                ModalSystem.open(html);
+            },
+
+            submitProduct: (id) => {
+                const name = document.getElementById('pName').value;
+                const quantity = document.getElementById('pQty').value;
+                const unit = document.getElementById('pUnit').value;
+                const threshold = document.getElementById('pThresh').value;
+
+                if(!name || !quantity) return Utils.showToast('بيانات ناقصة', 'error');
+
+                const payload = { id, name, quantity, unit, threshold };
+                if(id) {
+                    Store.dispatch('EDIT_PRODUCT', payload);
+                    Utils.showToast('تم التعديل بنجاح');
+                } else {
+                    Store.dispatch('ADD_PRODUCT', payload);
+                    Utils.showToast('تمت الإضافة بنجاح');
+                }
+                ModalSystem.close();
+                navigate();
+            },
+
+            deleteProduct: (id) => {
+                ModalSystem.confirm("هل أنت متأكد من حذف هذا الصنف من المخزون؟", () => {
+                    Store.dispatch('DELETE_PRODUCT', id);
+                    navigate();
+                    Utils.showToast('تم الحذف بنجاح');
+                });
+            },
+
+            // --- Employees ---
+            openEmployeeModal: (id = null) => {
+                const isEdit = id !== null;
+                const item = isEdit ? Store.state.employees.find(x => x.id === id) : { name: '', role: '', status: 'present' };
+
+                const html = `
+                    <h3 style="margin-bottom:1rem;">${isEdit ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد'}</h3>
+                    <div class="form-group"><label class="form-label">الاسم</label><input id="eName" class="form-control" value="${item.name}"></div>
+                    <div class="form-group"><label class="form-label">الوظيفة</label><input id="eRole" class="form-control" value="${item.role}"></div>
+                    <div class="form-group"><label class="form-label">الحالة</label>
+                        <select id="eStatus" class="form-select">
+                            <option value="present" ${item.status === 'present' ? 'selected' : ''}>حاضر</option>
+                            <option value="absent" ${item.status === 'absent' ? 'selected' : ''}>غائب</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem;">
+                        <button class="btn btn-ghost" onclick="ModalSystem.close()">إلغاء</button>
+                        <button class="btn btn-primary" onclick="Actions.submitEmployee(${id})">حفظ</button>
+                    </div>
+                `;
+                ModalSystem.open(html);
+            },
+
+            submitEmployee: (id) => {
+                const name = document.getElementById('eName').value;
+                const role = document.getElementById('eRole').value;
+                const status = document.getElementById('eStatus').value;
+
+                if(!name || !role) return Utils.showToast('يرجى إدخال الاسم والوظيفة', 'error');
+
+                const payload = { id, name, role, status };
+                if(id) {
+                    Store.dispatch('EDIT_EMPLOYEE', payload);
+                    Utils.showToast('تم تحديث بيانات الموظف');
+                } else {
+                    Store.dispatch('ADD_EMPLOYEE', payload);
+                    Utils.showToast('تم إضافة الموظف بنجاح');
+                }
+                ModalSystem.close();
+                navigate();
+            },
+
+            deleteEmployee: (id) => {
+                ModalSystem.confirm("سيتم حذف سجل الموظف نهائياً.", () => {
+                    Store.dispatch('DELETE_EMPLOYEE', id);
+                    navigate();
+                    Utils.showToast('تم حذف الموظف');
+                });
+            }
+        };
+
+        function toggleTheme() {
+            Store.dispatch('TOGGLE_THEME');
+        }
+
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', Store.state.theme);
+            const icon = document.getElementById('themeIcon');
+            icon.className = Store.state.theme === 'light' ? 'ph ph-moon' : 'ph ph-sun';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('open');
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notifDropdown');
+            dropdown.classList.toggle('active');
+            
+            // Hide badge when opened
+            if(dropdown.classList.contains('active')) {
+                document.getElementById('notifBadge').style.display = 'none';
+            }
+
+            // Render notifications
+            const notifs = Store.state.notifications;
+            dropdown.innerHTML = notifs.length ? notifs.map(n => `
+                <div class="notification-item">
+                    <div style="width:8px; height:8px; border-radius:50%; background:${n.type === 'success' ? 'var(--success)' : (n.type === 'danger' ? 'var(--danger)' : 'var(--warning)')}; margin-top:5px;"></div>
+                    <div>
+                        <div style="font-size:0.9rem; margin-bottom:0.25rem;">${n.text}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${n.time}</div>
+                    </div>
+                </div>
+            `).join('') : '<div style="padding:1rem; text-align:center; color:var(--text-muted);">لا توجد إشعارات</div>';
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notifDropdown');
+            const btn = document.getElementById('notifBtn');
+            if(dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        function updateUserProfileUI() {
+            const user = Store.state.user;
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('userAvatar').src = user.avatar;
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('productionChart');
+            if(!ctx) return;
+            const isDark = Store.state.theme === 'dark';
+            const textColor = isDark ? '#94A3B8' : '#64748B';
+            if(window.myChart) window.myChart.destroy();
+
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'],
+                    datasets: [{
+                        label: 'الوحدات المنتجة',
+                        data: Store.state.productionStats, // Uses dynamic stats
+                        backgroundColor: '#0EA5E9',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: isDark ? '#334155' : '#E2E8F0' }, ticks: { color: textColor } },
+                        x: { grid: { display: false }, ticks: { color: textColor } }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('load', () => {
+            applyTheme();
+            updateUserProfileUI();
+            
+            // Set initial factory name
+            document.getElementById('brandNameDisplay').textContent = Store.state.factoryName;
+            
+            // Show badge if there are notifications
+            if(Store.state.notifications.length > 0) {
+                document.getElementById('notifBadge').style.display = 'block';
+            }
+
+            navigate();
+            window.addEventListener('hashchange', navigate);
+        });
+
+    </script>
+</body>
+</html>
